@@ -1,37 +1,45 @@
-import streamlit as st
+from flask import Flask, render_template, request
 import numpy as np
 import joblib
 import os
 
-# Load model
+app = Flask(__name__)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model = joblib.load(os.path.join(BASE_DIR, "models", "fraud_model.pkl"))
-scaler = joblib.load(os.path.join(BASE_DIR, "models", "scaler.pkl"))
+model = joblib.load(os.path.join(BASE_DIR, "models", "demo_fraud_model.pkl"))
+scaler = joblib.load(os.path.join(BASE_DIR, "models", "demo_scaler.pkl"))
 
-st.set_page_config(page_title="Bank Transaction Fraud Detection", layout="centered")
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = None
+    probability = None
 
-st.title("🏦 Bank Transaction Fraud Detection System")
-st.write("Enter transaction details to check if the transaction is fraudulent.")
+    if request.method == "POST":
+        time = float(request.form["time"])
+        amount = float(request.form["amount"])
+        location_risk = float(request.form["location_risk"])
+        account_risk = float(request.form["account_risk"])
 
-st.divider()
+        high_amount = 1 if amount > 50000 else 0
+        late_night = 1 if time < 6 else 0
 
-# Input fields
-time = st.number_input("Transaction Time", min_value=0.0)
-amount = st.number_input("Transaction Amount", min_value=0.0)
+        input_data = np.array([[
+            time,
+            amount,
+            location_risk,
+            account_risk,
+            high_amount,
+            late_night
+        ]])
 
-st.subheader("Encoded Transaction Features")
-features = []
-for i in range(1, 29):
-    features.append(st.number_input(f"V{i}", value=0.0))
+        input_scaled = scaler.transform(input_data)
+        pred = model.predict(input_scaled)[0]
+        prob = model.predict_proba(input_scaled)[0][1]
 
-# Prepare input
-if st.button("🔍 Check Fraud"):
-    input_data = np.array([[time] + features + [amount]])
-    input_scaled = scaler.transform(input_data)
-    prediction = model.predict(input_scaled)[0]
-    probability = model.predict_proba(input_scaled)[0][1]
+        result = "Fraudulent Transaction 🚨" if pred == 1 else "Legitimate Transaction ✅"
+        probability = round(prob * 100, 2)
 
-    if prediction == 1:
-        st.error(f"🚨 Fraudulent Transaction Detected!\nProbability: {probability:.2f}")
-    else:
-        st.success(f"✅ Legitimate Transaction\nFraud Probability: {probability:.2f}")
+    return render_template("index.html", result=result, probability=probability)
+
+if __name__ == "__main__":
+    app.run(debug=True)
