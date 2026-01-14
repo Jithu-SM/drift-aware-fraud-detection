@@ -21,6 +21,8 @@ df["type_encoded"] = le.fit_transform(df["type"])
 
 # Feature engineering
 df["balanceDiff"] = df["oldbalanceOrg"] - df["newbalanceOrig"]
+df["txHour"] = np.random.randint(0, 24, size=len(df))
+
 
 features = [
     "amount",
@@ -29,7 +31,8 @@ features = [
     "newbalanceOrig",
     "oldbalanceDest",
     "newbalanceDest",
-    "balanceDiff"
+    "balanceDiff",
+    "txHour"
 ]
 
 X = df[features]

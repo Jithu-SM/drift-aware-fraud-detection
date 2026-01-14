@@ -19,13 +19,18 @@ def index():
     if request.method == "POST":
         tx_type = request.form["type"]
         amount = float(request.form["amount"])
+        tx_time = request.form["txTime"]  # e.g. "02:45"
         old_org = float(request.form["oldbalanceOrg"])
-        new_org = float(request.form["newbalanceOrig"])
         old_dest = float(request.form["oldbalanceDest"])
-        new_dest = float(request.form["newbalanceDest"])
+
+        # Calculate balances
+        new_org = old_org - amount
+        new_dest = old_dest + amount
 
         type_encoded = encoder.transform([tx_type])[0]
         balance_diff = old_org - new_org
+
+        tx_hour = int(tx_time.split(":")[0])
 
         input_data = np.array([[
             amount,
@@ -34,7 +39,8 @@ def index():
             new_org,
             old_dest,
             new_dest,
-            balance_diff
+            balance_diff,
+            tx_hour
         ]])
 
         input_scaled = scaler.transform(input_data)

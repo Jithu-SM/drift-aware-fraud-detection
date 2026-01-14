@@ -1,88 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Adaptive Bank Fraud Detection System</title>
+    <title>Adaptive Bank Fraud Detection</title>
     <style>
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #eef2f7;
-        }
-
+        body { font-family: Arial; background: #eef2f7; }
         .container {
-            width: 480px;
+            width: 460px;
             margin: 40px auto;
-            background: #ffffff;
+            background: #fff;
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-
-        h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-
-        label {
-            font-weight: bold;
-            display: block;
-            margin-top: 12px;
-        }
-
+        h2 { text-align: center; color: #2c3e50; }
+        label { font-weight: bold; margin-top: 12px; display: block; }
         input, select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 6px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
+            width: 100%; padding: 8px; margin-top: 6px;
+            border-radius: 5px; border: 1px solid #ccc;
         }
-
         button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 20px;
-            background: #007bff;
-            color: white;
-            font-size: 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
+            width: 100%; margin-top: 20px; padding: 10px;
+            background: #007bff; color: white;
+            border: none; border-radius: 6px;
         }
-
-        button:hover {
-            background: #0056b3;
-        }
-
         .result {
-            margin-top: 20px;
-            padding: 12px;
+            margin-top: 18px; padding: 12px;
+            font-weight: bold; text-align: center;
             border-radius: 6px;
-            font-weight: bold;
-            text-align: center;
         }
-
-        .fraud {
-            background: #ffdddd;
-            color: #a10000;
-        }
-
-        .legit {
-            background: #ddffdd;
-            color: #006400;
-        }
-
-        .probability {
-            margin-top: 5px;
-            font-size: 14px;
-        }
-
-        .note {
-            font-size: 12px;
-            color: #555;
-            margin-top: 15px;
-            text-align: center;
-        }
+        .fraud { background: #ffdddd; color: #a10000; }
+        .legit { background: #ddffdd; color: #006400; }
+        .note { font-size: 12px; text-align: center; margin-top: 10px; color: #555; }
     </style>
 </head>
 <body>
@@ -101,34 +49,29 @@
         </select>
 
         <label>Transaction Amount</label>
-        <input type="number" step="0.01" name="amount" placeholder="e.g. 25000" required>
+        <input type="number" step="0.01" name="amount" required>
 
-        <label>Sender Balance Before Transaction</label>
-        <input type="number" step="0.01" name="oldbalanceOrg" placeholder="e.g. 50000" required>
+        <label>Transaction Time</label>
+        <input type="time" name="txTime" required>
 
-        <label>Sender Balance After Transaction</label>
-        <input type="number" step="0.01" name="newbalanceOrig" placeholder="e.g. 25000" required>
+        <label>Sender Balance (Before Transaction)</label>
+        <input type="number" step="0.01" name="oldbalanceOrg" required>
 
-        <label>Receiver Balance Before Transaction</label>
-        <input type="number" step="0.01" name="oldbalanceDest" placeholder="e.g. 10000" required>
-
-        <label>Receiver Balance After Transaction</label>
-        <input type="number" step="0.01" name="newbalanceDest" placeholder="e.g. 35000" required>
+        <label>Receiver Balance (Before Transaction)</label>
+        <input type="number" step="0.01" name="oldbalanceDest" required>
 
         <button type="submit">Detect Fraud</button>
     </form>
 
     {% if result %}
         <div class="result {% if 'Fraud' in result %}fraud{% else %}legit{% endif %}">
-            {{ result }}
-            <div class="probability">
-                Fraud Probability: {{ probability }}%
-            </div>
+            {{ result }}<br>
+            Fraud Probability: {{ probability }}%
         </div>
     {% endif %}
 
     <div class="note">
-        * Prediction is based on transaction behavior and balance changes
+        * Post-transaction balances are automatically calculated
     </div>
 </div>
 
