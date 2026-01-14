@@ -6,8 +6,10 @@ import os
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model = joblib.load(os.path.join(BASE_DIR, "models", "demo_fraud_model.pkl"))
-scaler = joblib.load(os.path.join(BASE_DIR, "models", "demo_scaler.pkl"))
+
+model = joblib.load(os.path.join(BASE_DIR, "models", "fraud_model.pkl"))
+scaler = joblib.load(os.path.join(BASE_DIR, "models", "scaler.pkl"))
+encoder = joblib.load(os.path.join(BASE_DIR, "models", "type_encoder.pkl"))
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -15,28 +17,31 @@ def index():
     probability = None
 
     if request.method == "POST":
-        time = float(request.form["time"])
+        tx_type = request.form["type"]
         amount = float(request.form["amount"])
-        location_risk = float(request.form["location_risk"])
-        account_risk = float(request.form["account_risk"])
+        old_org = float(request.form["oldbalanceOrg"])
+        new_org = float(request.form["newbalanceOrig"])
+        old_dest = float(request.form["oldbalanceDest"])
+        new_dest = float(request.form["newbalanceDest"])
 
-        high_amount = 1 if amount > 50000 else 0
-        late_night = 1 if time < 6 else 0
+        type_encoded = encoder.transform([tx_type])[0]
+        balance_diff = old_org - new_org
 
         input_data = np.array([[
-            time,
             amount,
-            location_risk,
-            account_risk,
-            high_amount,
-            late_night
+            type_encoded,
+            old_org,
+            new_org,
+            old_dest,
+            new_dest,
+            balance_diff
         ]])
 
         input_scaled = scaler.transform(input_data)
         pred = model.predict(input_scaled)[0]
         prob = model.predict_proba(input_scaled)[0][1]
 
-        result = "Fraudulent Transaction 🚨" if pred == 1 else "Legitimate Transaction ✅"
+        result = "Fraudulent 🚨" if pred == 1 else "Legitimate ✅"
         probability = round(prob * 100, 2)
 
     return render_template("index.html", result=result, probability=probability)
