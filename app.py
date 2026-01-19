@@ -60,11 +60,11 @@ def index():
 
         # Late-night transactions
         if tx_hour < 6:
-            risk_boost += 0.15
+            risk_boost += 0.00
 
         # High-risk transaction types
         if tx_type in ["TRANSFER", "CASH_OUT"]:
-            risk_boost += 0.10
+            risk_boost += 0.00
 
         adjusted_prob = min(prob + risk_boost, 1.0)
 
