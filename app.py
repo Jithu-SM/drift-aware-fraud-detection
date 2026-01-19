@@ -2,13 +2,13 @@ from flask import Flask, render_template, request
 import numpy as np
 import joblib
 import os
+from src.predict import predict_fraud
 
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-model = joblib.load(os.path.join(BASE_DIR, "models", "fraud_model.pkl"))
-scaler = joblib.load(os.path.join(BASE_DIR, "models", "scaler.pkl"))
+# Load encoder (model & scaler are loaded inside predict.py)
 encoder = joblib.load(os.path.join(BASE_DIR, "models", "type_encoder.pkl"))
 
 @app.route("/", methods=["GET", "POST"])
@@ -17,40 +17,64 @@ def index():
     probability = None
 
     if request.method == "POST":
+        # -------------------------------
+        # Get form inputs
+        # -------------------------------
         tx_type = request.form["type"]
         amount = float(request.form["amount"])
-        tx_time = request.form["txTime"]  # e.g. "02:45"
+        tx_time = request.form["txTime"]       # HH:MM
         old_org = float(request.form["oldbalanceOrg"])
         old_dest = float(request.form["oldbalanceDest"])
 
-        # Calculate balances
+        # -------------------------------
+        # Derived values
+        # -------------------------------
         new_org = old_org - amount
         new_dest = old_dest + amount
 
-        type_encoded = encoder.transform([tx_type])[0]
-        balance_diff = old_org - new_org
-
         tx_hour = int(tx_time.split(":")[0])
+        type_encoded = encoder.transform([tx_type])[0]
 
-        input_data = np.array([[
+        # -------------------------------
+        # Feature vector (MUST MATCH TRAINING ORDER)
+        # -------------------------------
+        features = [
             amount,
-            type_encoded,
             old_org,
             new_org,
             old_dest,
             new_dest,
-            balance_diff,
-            tx_hour
-        ]])
+            tx_hour,
+            type_encoded
+        ]
 
-        input_scaled = scaler.transform(input_data)
-        pred = model.predict(input_scaled)[0]
-        prob = model.predict_proba(input_scaled)[0][1]
+        # -------------------------------
+        # ML Prediction
+        # -------------------------------
+        prob = predict_fraud(features)
 
-        result = "Fraudulent 🚨" if pred == 1 else "Legitimate ✅"
-        probability = round(prob * 100, 2)
+        # -------------------------------
+        # Rule-based risk adjustment
+        # -------------------------------
+        risk_boost = 0.0
+
+        # Late-night transactions
+        if tx_hour < 6:
+            risk_boost += 0.15
+
+        # High-risk transaction types
+        if tx_type in ["TRANSFER", "CASH_OUT"]:
+            risk_boost += 0.10
+
+        adjusted_prob = min(prob + risk_boost, 1.0)
+
+        final_pred = 1 if adjusted_prob >= 0.5 else 0
+
+        result = "Fraudulent 🚨" if final_pred else "Legitimate ✅"
+        probability = round(adjusted_prob * 100, 2)
 
     return render_template("index.html", result=result, probability=probability)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

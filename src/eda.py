@@ -4,7 +4,7 @@ import seaborn as sns
 import os
 
 # Paths
-DATA_PATH = "../data/creditcard.csv"
+DATA_PATH = "../data/fraud.csv"
 FIGURE_PATH = "../results/figures"
 
 os.makedirs(FIGURE_PATH, exist_ok=True)
