@@ -1,0 +1,11 @@
+transaction_id,transaction_amount,payment_type,session_length_in_minutes,velocity_6h,velocity_24h,velocity_4w,credit_risk_score,foreign_request,email_is_free,device_fraud_count,device_os,month
+TXN001,2500,CARD,12,3,8,20,720,0,0,0,Windows,5
+TXN002,1200,UPI,15,2,6,18,680,0,1,0,Android,5
+TXN003,50000,TRANSFER,2,45,90,300,420,1,1,5,Android,11
+TXN004,75000,CASH_OUT,1,60,120,400,390,1,1,7,Android,12
+TXN005,3000,CARD,20,4,10,25,700,0,0,0,Windows,6
+TXN006,90000,TRANSFER,1,80,150,500,350,1,1,9,Linux,12
+TXN007,1500,UPI,18,3,7,22,690,0,1,0,Android,7
+TXN008,65000,CASH_OUT,2,55,110,350,410,1,1,6,MacOS,11
+TXN009,2200,CARD,25,2,5,15,730,0,0,0,Windows,4
+TXN010,85000,TRANSFER,1,70,140,450,360,1,1,8,Android,12

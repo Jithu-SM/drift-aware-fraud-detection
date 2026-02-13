@@ -1,88 +1,152 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
+import pandas as pd
 import numpy as np
 import joblib
 import os
 from src.predict import predict_fraud
+from src.features import FEATURES
 
 app = Flask(__name__)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = "uploads"
+RESULT_FOLDER = "results"
 
-# Load encoder (model & scaler are loaded inside predict.py)
-encoder = joblib.load(os.path.join(BASE_DIR, "models", "type_encoder.pkl"))
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(RESULT_FOLDER, exist_ok=True)
+
+# Load trained artifacts
+scaler = joblib.load("models/scaler.pkl")
+encoders = joblib.load("models/encoders.pkl")
+
+REQUIRED_COLUMNS = [
+    "transaction_id",
+    "transaction_amount",
+    "payment_type",
+    "session_length_in_minutes",
+    "velocity_6h",
+    "velocity_24h",
+    "velocity_4w",
+    "credit_risk_score",
+    "foreign_request",
+    "email_is_free",
+    "device_fraud_count",
+    "device_os",
+    "month"
+]
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    result = None
-    probability = None
+    table = None
+    download_file = None
+    error = None
 
     if request.method == "POST":
-        # -------------------------------
-        # Get form inputs
-        # -------------------------------
-        tx_type = request.form["type"]
-        amount = float(request.form["amount"])
-        tx_time = request.form["txTime"]       # HH:MM
-        old_org = float(request.form["oldbalanceOrg"])
-        old_dest = float(request.form["oldbalanceDest"])
+        file = request.files.get("file")
 
-        # -------------------------------
-        # Derived values
-        # -------------------------------
-        new_org = old_org - amount
-        new_dest = old_dest + amount
+        if not file or not file.filename.endswith(".csv"):
+            error = "Please upload a valid CSV file"
+            return render_template("index.html", error=error)
 
-        tx_hour = int(tx_time.split(":")[0])
-        type_encoded = encoder.transform([tx_type])[0]
+        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(filepath)
 
-        # -------------------------------
-        # Feature vector (MUST MATCH TRAINING ORDER)
-        # -------------------------------
-        features = [
-            amount,
-            old_org,
-            new_org,
-            old_dest,
-            new_dest,
-            tx_hour,
-            type_encoded
-        ]
+        df = pd.read_csv(filepath)
 
-        # -------------------------------
-        # ML Prediction
-        # -------------------------------
-        prob = predict_fraud(features)
+        # -----------------------------
+        # Column validation
+        # -----------------------------
+        missing = set(REQUIRED_COLUMNS) - set(df.columns)
+        if missing:
+            error = f"Missing columns: {missing}"
+            return render_template("index.html", error=error)
 
-        # -------------------------------
-        # Rule-based risk adjustment
-        # -------------------------------
-        risk_boost = 0.0
+        # -----------------------------
+        # Encode categoricals 
+        # -----------------------------
+        PAYMENT_TYPE_MAPPING = {
+            "card": "AA",
+            "upi": "AB",
+            "transfer": "AC",
+            "cash_out": "AD",
+        }
 
-        # Late-night transactions
-        if tx_hour < 6:
-            risk_boost += 0.15
+        DEVICE_OS_MAPPING = {
+            "android": "other",
+            "ios": "other",
+            "windows": "windows",
+            "linux": "linux",
+            "macos": "macintosh",
+            "macintosh": "macintosh",
+            "x11": "x11",
+            "others": "other",
+            "other": "other"
+        }
 
-        # High-risk transaction types
-        if tx_type in ["TRANSFER", "CASH_OUT"]:
-            risk_boost += 0.10
+        df["payment_type"] = df["payment_type"].astype(str).str.lower()
+        df["device_os"] = df["device_os"].astype(str).str.lower()
 
-        # Reduce risk boost for low-risk amounts
-        # Low-risk threshold: amounts below 5000
-        low_risk_threshold = 5000
-        if amount < low_risk_threshold:
-            # Amount-based modifier: lower amounts get lower risk boost
-            amount_modifier = amount / low_risk_threshold
-            risk_boost *= amount_modifier
+        df["payment_type"] = df["payment_type"].map(PAYMENT_TYPE_MAPPING)
+        df["device_os"] = df["device_os"].map(DEVICE_OS_MAPPING)
 
-        adjusted_prob = min(prob + risk_boost, 1.0)
+        # 🔒 SAFETY NET (CRITICAL)
+        df["payment_type"] = df["payment_type"].fillna("INTERNET")
+        df["device_os"] = df["device_os"].fillna("other")
 
-        final_pred = 1 if adjusted_prob >= 0.5 else 0
+        # if df["device_os"].isna().any():
+        #     raise ValueError("Unsupported device_os detected")
 
-        result = "Fraudulent 🚨" if final_pred else "Legitimate ✅"
-        probability = round(adjusted_prob * 100, 2)
+        df["device_os"] = encoders["device_os"].transform(df["device_os"])
+        df["payment_type"] = encoders["payment_type"].transform(df["payment_type"])
 
-    return render_template("index.html", result=result, probability=probability)
 
+        # -----------------------------
+        # Synthetic time features
+        # -----------------------------
+        df["transaction_hour"] = np.random.randint(0, 24, size=len(df))
+        df["is_night_transaction"] = df["transaction_hour"].between(0, 5).astype(int)
+
+        # -----------------------------
+        # Feature alignment
+        # -----------------------------
+        df["intended_balcon_amount"] = df["transaction_amount"]
+        df = df.drop(columns=["transaction_amount"])
+
+        # -----------------------------
+        # Scaling
+        # -----------------------------
+        X = scaler.transform(df[FEATURES])
+
+        # -----------------------------
+        # Prediction
+        # -----------------------------
+        probs = predict_fraud(X)
+        df["fraud_probability"] = probs
+        df["fraud_prediction"] = np.where(
+            probs >= 0.5, "Fraudulent 🚨", "Legitimate ✅"
+        )
+
+        result_path = os.path.join(RESULT_FOLDER, "fraud_results.csv")
+        df.to_csv(result_path, index=False)
+
+        table = df[
+            ["transaction_id", "fraud_prediction", "fraud_probability"]
+        ].to_html(classes="table table-striped", index=False)
+
+        download_file = "fraud_results.csv"
+
+    return render_template(
+        "index.html",
+        table=table,
+        download_file=download_file,
+        error=error
+    )
+
+@app.route("/download")
+def download():
+    return send_file(
+        os.path.join(RESULT_FOLDER, "fraud_results.csv"),
+        as_attachment=True
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)
