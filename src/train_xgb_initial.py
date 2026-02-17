@@ -32,20 +32,24 @@ X_scaled = scaler.fit_transform(X)
 X_train, X_holdout, y_train, y_holdout = train_test_split(
     X_scaled,
     y,
-    test_size=0.8,
+    test_size=0.2,   # train on 80%
     stratify=y,
     random_state=42
 )
 
+fraud_ratio = y_train.value_counts()[0] / y_train.value_counts()[1]
+
 model = XGBClassifier(
-    n_estimators=150,
-    max_depth=6,
-    learning_rate=0.08,
+    n_estimators=300,
+    max_depth=8,
+    learning_rate=0.05,
+    scale_pos_weight=fraud_ratio,
     eval_metric="logloss",
     random_state=42
 )
 
 model.fit(X_train, y_train)
+
 
 joblib.dump(model, "models/xgb_initial_model.pkl")
 joblib.dump(scaler, "models/scaler.pkl")
