@@ -1,37 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bank Fraud Detection</title>
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
+    <title>Fraud Detection System</title>
+    <style>
+        body { font-family: Arial; padding: 30px; }
+        table { border-collapse: collapse; width: 100%; margin-top:20px;}
+        th, td { border:1px solid #ddd; padding:8px; text-align:center;}
+        th { background:#f2f2f2;}
+        .red { background-color:#ffcccc; }
+        .orange { background-color:#ffe5cc; }
+        .green { background-color:#ccffcc; }
+        .btn { padding:8px 12px; background:#007bff; color:white; border:none; cursor:pointer;}
+    </style>
 </head>
-<body class="bg-light">
+<body>
 
-<div class="container mt-5">
-    <h2 class="mb-4">🏦 Bank Transaction Fraud Detection</h2>
+<h2>Upload Transactions CSV</h2>
 
-    <form method="POST" enctype="multipart/form-data">
-        <div class="mb-3">
-            <input type="file" name="file" class="form-control" required>
-        </div>
-        <button class="btn btn-primary">Upload & Analyze</button>
-    </form>
+<form method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <button type="submit" class="btn">Upload & Predict</button>
+</form>
 
-    {% if error %}
-        <div class="alert alert-danger mt-3">{{ error }}</div>
-    {% endif %}
+{% if error %}
+<p style="color:red;">{{ error }}</p>
+{% endif %}
 
-    {% if table %}
-        <h4 class="mt-5">Fraud Analysis Results</h4>
-        {{ table | safe }}
+{% if table_data %}
+<table>
+<tr>
+    <th>ID</th>
+    <th>Type</th>
+    <th>Amount</th>
+    <th>Probability</th>
+    <th>Prediction</th>
+</tr>
+{% for row in table_data %}
+<tr class="{{ row.risk_color }}">
+    <td>{{ row.transaction_id }}</td>
+    <td>{{ row.type }}</td>
+    <td>{{ row.amount }}</td>
+    <td>{{ "%.4f"|format(row.fraud_probability) }}</td>
+    <td>{{ row.fraud_prediction }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
 
-        <a href="/download" class="btn btn-success mt-3">
-            Download Results CSV
-        </a>
-    {% endif %}
-</div>
+<br>
+<a href="/transactions">View All Transactions</a>
 
 </body>
 </html>

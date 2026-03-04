@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>All Transactions</title>
+    <style>
+        body { font-family: Arial; padding: 30px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border:1px solid #ddd; padding:8px; text-align:center;}
+        th { background:#f2f2f2;}
+        .btn { padding:5px 8px; }
+    </style>
+</head>
+<body>
+
+<h2>All Logged Transactions</h2>
+
+<table>
+<tr>
+    <th>ID</th>
+    <th>Prediction</th>
+    <th>Probability</th>
+    <th>Admin Label</th>
+    <th>Override</th>
+</tr>
+
+{% for row in data %}
+<tr>
+    <td>{{ row.transaction_id }}</td>
+    <td>{{ row.fraud_prediction }}</td>
+    <td>{{ row.fraud_probability }}</td>
+    <td>{{ row.admin_label }}</td>
+    <td>
+        <form method="POST" action="/override">
+            <input type="hidden" name="transaction_id" value="{{ row.transaction_id }}">
+            <select name="new_label">
+                <option value="Fraud">Fraud</option>
+                <option value="Legitimate">Legitimate</option>
+            </select>
+            <button type="submit" class="btn">Update</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}
+</table>
+
+<br>
+<a href="/">Back to Upload</a> |
+<a href="/download">Download Dataset</a>
+
+</body>
+</html>

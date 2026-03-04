@@ -77,7 +77,7 @@ model = XGBClassifier(
     learning_rate=0.1,
     subsample=0.8,
     colsample_bytree=0.8,
-    scale_pos_weight=scale_pos_weight,
+    scale_pos_weight=scale_pos_weight,  # Handle imbalance
     eval_metric="logloss",
     random_state=42
 )
