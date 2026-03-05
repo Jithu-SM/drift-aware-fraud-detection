@@ -1,3 +1,4 @@
+from src.drift_detection import detect_prediction_drift, detect_fraud_rate_drift
 from flask import Flask, render_template, request, redirect, url_for, send_file
 import pandas as pd
 import numpy as np
@@ -16,6 +17,7 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
 TRANSACTIONS_FILE = os.path.join(DATA_FOLDER, "transactions.csv")
+DRIFT_LOG_FILE = os.path.join(DATA_FOLDER, "drift_log.csv")
 
 # -------------------------------
 # Load trained artifacts
@@ -57,45 +59,55 @@ def classify_risk(prob):
         return "Legitimate 🟢", "green"
 
 # -------------------------------
+# Drift Logging
+# -------------------------------
+def log_drift(pred_drift, fraud_drift):
+    drift_entry = {
+        "timestamp": datetime.now(),
+        "prediction_drift": pred_drift,
+        "fraud_rate_drift": fraud_drift
+    }
+
+    if os.path.exists(DRIFT_LOG_FILE):
+        df_log = pd.read_csv(DRIFT_LOG_FILE)
+        df_log = pd.concat([df_log, pd.DataFrame([drift_entry])], ignore_index=True)
+    else:
+        df_log = pd.DataFrame([drift_entry])
+
+    df_log.to_csv(DRIFT_LOG_FILE, index=False)
+
+# -------------------------------
 # Home Route
 # -------------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     error = None
     table_data = None
+    drift_alert = None
 
     if request.method == "POST":
         file = request.files.get("file")
 
         if not file or not file.filename.endswith(".csv"):
-            error = "Please upload a valid CSV file."
-            return render_template("index.html", error=error)
+            return render_template("index.html", error="Please upload a valid CSV file.")
 
         filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-
-        # Save file properly
         file.stream.seek(0)
         file.save(filepath)
 
-        # Make sure file exists and is not empty
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-            return render_template("index.html", error="Uploaded file is empty.")
-
         try:
-            df = pd.read_csv(filepath, encoding="utf-8")
-        except pd.errors.EmptyDataError:
-            return render_template("index.html", error="CSV file has no readable columns.")
+            df = pd.read_csv(filepath)
         except Exception as e:
             return render_template("index.html", error=str(e))
-        
-        
+
         missing = set(REQUIRED_COLUMNS) - set(df.columns)
         if missing:
-            error = f"Missing columns: {missing}"
-            return render_template("index.html", error=error)
+            return render_template("index.html", error=f"Missing columns: {missing}")
 
         try:
+            # -----------------------
             # Feature Engineering
+            # -----------------------
             df["transaction_hour"] = df["step"] % 24
             df["type"] = df["type"].astype(str)
             df["type_encoded"] = type_encoder.transform(df["type"])
@@ -113,7 +125,9 @@ def index():
             df["admin_label"] = None
             df["timestamp"] = datetime.now()
 
-            # Append to transactions.csv
+            # -----------------------
+            # Append to transactions
+            # -----------------------
             if os.path.exists(TRANSACTIONS_FILE):
                 existing = pd.read_csv(TRANSACTIONS_FILE)
                 combined = pd.concat([existing, df], ignore_index=True)
@@ -122,12 +136,39 @@ def index():
 
             combined.to_csv(TRANSACTIONS_FILE, index=False)
 
+            # -----------------------
+            # Run Drift Detection
+            # -----------------------
+            if len(combined) > 100:
+                historical = combined.iloc[:-len(df)]
+                recent = df
+
+                pred_drift = detect_prediction_drift(
+                    historical["fraud_probability"],
+                    recent["fraud_probability"]
+                )
+
+                fraud_drift = detect_fraud_rate_drift(
+                    historical["fraud_probability"] > 0.5,
+                    recent["fraud_probability"] > 0.5
+                )
+
+                log_drift(pred_drift, fraud_drift)
+
+                if pred_drift or fraud_drift:
+                    drift_alert = "⚠️ Concept Drift Detected! Model retraining recommended."
+
             table_data = df.to_dict(orient="records")
 
         except Exception as e:
             error = str(e)
 
-    return render_template("index.html", table_data=table_data, error=error)
+    return render_template(
+        "index.html",
+        table_data=table_data,
+        error=error,
+        drift_alert=drift_alert
+    )
 
 # -------------------------------
 # Admin Override
@@ -145,7 +186,7 @@ def override():
     return redirect(url_for("view_transactions"))
 
 # -------------------------------
-# View All Transactions
+# View Transactions
 # -------------------------------
 @app.route("/transactions")
 def view_transactions():

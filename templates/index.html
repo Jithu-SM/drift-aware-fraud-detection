@@ -2,53 +2,160 @@
 <html>
 <head>
     <title>Fraud Detection System</title>
+
     <style>
-        body { font-family: Arial; padding: 30px; }
-        table { border-collapse: collapse; width: 100%; margin-top:20px;}
-        th, td { border:1px solid #ddd; padding:8px; text-align:center;}
-        th { background:#f2f2f2;}
+        body {
+            font-family: Arial;
+            padding: 30px;
+            background-color: #f9f9f9;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top:20px;
+            background:white;
+        }
+
+        th, td {
+            border:1px solid #ddd;
+            padding:8px;
+            text-align:center;
+        }
+
+        th {
+            background:#f2f2f2;
+        }
+
         .red { background-color:#ffcccc; }
         .orange { background-color:#ffe5cc; }
         .green { background-color:#ccffcc; }
-        .btn { padding:8px 12px; background:#007bff; color:white; border:none; cursor:pointer;}
+
+        .btn {
+            padding:8px 12px;
+            background:#007bff;
+            color:white;
+            border:none;
+            cursor:pointer;
+            border-radius:4px;
+        }
+
+        .btn:hover {
+            background:#0056b3;
+        }
+
+        .alert {
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .alert-error {
+            background-color: #ffcccc;
+            color: #a10000;
+        }
+
+        .alert-drift {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .legend span {
+            padding: 6px 10px;
+            margin-right: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .legend .red { background:#ffcccc; }
+        .legend .orange { background:#ffe5cc; }
+        .legend .green { background:#ccffcc; }
+
+        a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
 
-<h2>Upload Transactions CSV</h2>
+<div class="card">
+    <h2>🚨 Fraud Detection System</h2>
 
-<form method="POST" enctype="multipart/form-data">
-    <input type="file" name="file" required>
-    <button type="submit" class="btn">Upload & Predict</button>
-</form>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit" class="btn">Upload & Predict</button>
+    </form>
 
-{% if error %}
-<p style="color:red;">{{ error }}</p>
-{% endif %}
+    {% if error %}
+        <div class="alert alert-error">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    {% if drift_alert %}
+        <div class="alert alert-drift">
+            {{ drift_alert }}
+        </div>
+    {% endif %}
+</div>
 
 {% if table_data %}
-<table>
-<tr>
-    <th>ID</th>
-    <th>Type</th>
-    <th>Amount</th>
-    <th>Probability</th>
-    <th>Prediction</th>
-</tr>
-{% for row in table_data %}
-<tr class="{{ row.risk_color }}">
-    <td>{{ row.transaction_id }}</td>
-    <td>{{ row.type }}</td>
-    <td>{{ row.amount }}</td>
-    <td>{{ "%.4f"|format(row.fraud_probability) }}</td>
-    <td>{{ row.fraud_prediction }}</td>
-</tr>
-{% endfor %}
-</table>
+<div class="card">
+
+    <h3>Prediction Results</h3>
+
+    <div class="legend">
+        <span class="red">Fraudulent (>0.8)</span>
+        <span class="orange">Action Required (0.5–0.8)</span>
+        <span class="green">Legitimate (<0.5)</span>
+    </div>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Probability</th>
+            <th>Prediction</th>
+        </tr>
+
+        {% for row in table_data %}
+        <tr class="{{ row.risk_color }}">
+            <td>{{ row.transaction_id }}</td>
+            <td>{{ row.type }}</td>
+            <td>{{ row.amount }}</td>
+            <td>{{ "%.4f"|format(row.fraud_probability) }}</td>
+            <td>{{ row.fraud_prediction }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</div>
 {% endif %}
 
-<br>
-<a href="/transactions">View All Transactions</a>
+<div class="card">
+    <a href="/transactions">📊 View All Transactions</a> |
+    <a href="/download">⬇ Download Dataset</a>
+</div>
 
 </body>
 </html>
