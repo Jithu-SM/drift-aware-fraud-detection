@@ -1,5 +1,0 @@
-step,type,amount,oldbalanceOrg,newbalanceOrig,oldbalanceDest,newbalanceDest,transaction_hour,type_encoded,fraud_probability,fraud_prediction
-100,TRANSFER,500000,500000,0,0,0,4,4,0.99999213,Fraudulent 🚨
-50,PAYMENT,2000,5000,3000,0,0,2,3,2.0278594e-05,Legitimate ✅
-150,CASH_OUT,750000,750000,0,0,0,6,1,0.9998282,Fraudulent 🚨
-75,DEBIT,1500,4000,2500,0,0,3,2,2.2055074e-05,Legitimate ✅

@@ -56,5 +56,5 @@ def preprocess(raw: dict) -> np.ndarray:
             df[col] = df[col].apply(lambda v: v if v in known else le.classes_[0])
             df[col] = le.transform(df[col])
 
-    X = df[FEATURES].values
+    X = df[FEATURES]
     return _scaler.transform(X)

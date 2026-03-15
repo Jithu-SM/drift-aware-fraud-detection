@@ -17,8 +17,10 @@ If any detector fires, retraining is triggered automatically
 and the in-memory model is hot-swapped.
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import traceback
+import os
 
 import predict as pred_module
 import transaction_store as store
@@ -26,6 +28,20 @@ from drift_detection import check_all_drift
 from retrain import trigger_retrain
 
 app = Flask(__name__)
+CORS(app)   # allow requests from file:// and any origin (dashboard + dev)
+
+DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), "dashboard")
+
+@app.route("/")
+def root():
+    """Redirect root to the admin dashboard."""
+    return send_from_directory(DASHBOARD_DIR, "index.html")
+
+@app.route("/dashboard")
+@app.route("/dashboard/")
+def dashboard():
+    return send_from_directory(DASHBOARD_DIR, "index.html")
+
 
 CHECK_EVERY = 100        # run drift check every N predictions
 DRIFT_WINDOW = 500       # rows per window for drift detectors
