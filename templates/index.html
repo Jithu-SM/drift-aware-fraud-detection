@@ -1,161 +1,518 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Fraud Detection System</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fraud Detection — Admin</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --border: #2a2f40;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --fraud: #ef4444;
+    --fraud-bg: #1a0a0a;
+    --legit: #22c55e;
+    --legit-bg: #071a0e;
+    --amber: #f59e0b;
+    --blue: #3b82f6;
+    --blue-dim: #1e3a5f;
+    --radius: 8px;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 13px;
+  }
 
-    <style>
-        body {
-            font-family: Arial;
-            padding: 30px;
-            background-color: #f9f9f9;
-        }
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: 52px;
+  }
+  header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--legit);
+         box-shadow: 0 0 8px var(--legit); flex-shrink: 0; }
+  .dot.offline { background: var(--fraud); box-shadow: 0 0 8px var(--fraud); }
+  .api-url { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+  header .spacer { flex: 1; }
+  .btn {
+    padding: 6px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); cursor: pointer; font-size: 12px;
+    font-family: inherit; transition: border-color .15s, background .15s;
+  }
+  .btn:hover { border-color: var(--blue); background: var(--blue-dim); }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.primary:hover { background: #2563eb; }
+  .btn.danger { background: var(--fraud-bg); border-color: var(--fraud); color: var(--fraud); }
+  .btn.danger:hover { background: #2a0a0a; }
 
-        h2 {
-            margin-bottom: 10px;
-        }
+  /* ── Layout ── */
+  .layout { display: grid; grid-template-columns: 260px 1fr; height: calc(100vh - 52px); }
 
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 25px;
-        }
+  /* ── Sidebar ── */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .stat-label { color: var(--muted); font-size: 11px; text-transform: uppercase;
+                letter-spacing: .5px; margin-bottom: 6px; }
+  .stat-value { font-size: 26px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+  .stat-value.fraud { color: var(--fraud); }
+  .stat-value.legit { color: var(--legit); }
+  .stat-value.neutral { color: var(--text); }
+  .stat-sub { color: var(--muted); font-size: 11px; margin-top: 4px; }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top:20px;
-            background:white;
-        }
+  /* drift badge */
+  .drift-badge {
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    border: 1px solid;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .drift-badge.ok { border-color: #14532d; background: #071a0e; color: var(--legit); }
+  .drift-badge.warn { border-color: #78350f; background: #1c0e04; color: var(--amber); }
+  .drift-badge strong { display: block; font-size: 13px; margin-bottom: 4px; }
+  .drift-detail { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 6px; }
 
-        th, td {
-            border:1px solid #ddd;
-            padding:8px;
-            text-align:center;
-        }
+  /* ── Main ── */
+  main { display: flex; flex-direction: column; overflow: hidden; }
+  .toolbar {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+  }
+  .toolbar label { color: var(--muted); font-size: 11px; }
+  select, input[type=number] {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit;
+  }
+  .filter-row { display: flex; align-items: center; gap: 8px; }
+  .filter-btn { font-size: 11px; padding: 4px 10px; }
+  .filter-btn.active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
 
-        th {
-            background:#f2f2f2;
-        }
+  /* ── Table ── */
+  .table-wrap { flex: 1; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    position: sticky; top: 0; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px; text-align: left; font-weight: 500;
+    color: var(--muted); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .4px; white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: rgba(255,255,255,.025); }
+  tbody tr.corrected { background: rgba(59,130,246,.06); }
+  td { padding: 7px 10px; vertical-align: middle; white-space: nowrap; }
+  td.mono { font-family: var(--mono); font-size: 11px; }
 
-        .red { background-color:#ffcccc; }
-        .orange { background-color:#ffe5cc; }
-        .green { background-color:#ccffcc; }
+  .label-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 500;
+  }
+  .label-pill.fraud { background: var(--fraud-bg); color: var(--fraud); border: 1px solid #3a0a0a; }
+  .label-pill.legit { background: var(--legit-bg); color: var(--legit); border: 1px solid #0a2e14; }
+  .label-pill .dot-sm { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
-        .btn {
-            padding:8px 12px;
-            background:#007bff;
-            color:white;
-            border:none;
-            cursor:pointer;
-            border-radius:4px;
-        }
+  .prob-bar {
+    width: 70px; height: 6px; background: var(--border); border-radius: 3px; display: inline-block;
+    vertical-align: middle; overflow: hidden;
+  }
+  .prob-fill { height: 100%; border-radius: 3px; transition: width .2s; }
 
-        .btn:hover {
-            background:#0056b3;
-        }
+  .corrected-tag {
+    font-size: 10px; color: var(--blue); background: var(--blue-dim);
+    border-radius: 4px; padding: 1px 5px; margin-left: 4px;
+  }
 
-        .alert {
-            padding: 12px;
-            margin-top: 15px;
-            border-radius: 6px;
-            font-weight: bold;
-        }
+  .flip-btn {
+    padding: 3px 9px; font-size: 11px; border-radius: 5px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; font-family: inherit;
+    transition: all .15s;
+  }
+  .flip-btn:hover { border-color: var(--amber); color: var(--amber); background: #1a1200; }
+  .flip-btn:active { transform: scale(.96); }
 
-        .alert-error {
-            background-color: #ffcccc;
-            color: #a10000;
-        }
+  /* ── Status bar ── */
+  .statusbar {
+    padding: 6px 16px; background: var(--surface); border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; display: flex; align-items: center; gap: 12px;
+  }
+  .statusbar .ok { color: var(--legit); }
+  .statusbar .err { color: var(--fraud); }
 
-        .alert-drift {
-            background-color: #fff3cd;
-            color: #856404;
-        }
+  /* ── Empty state ── */
+  .empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 200px; color: var(--muted); gap: 8px;
+  }
+  .empty span { font-size: 28px; }
 
-        .legend span {
-            padding: 6px 10px;
-            margin-right: 10px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .legend .red { background:#ffcccc; }
-        .legend .orange { background:#ffe5cc; }
-        .legend .green { background:#ccffcc; }
-
-        a {
-            text-decoration: none;
-            color: #007bff;
-            font-weight: bold;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-    </style>
+  /* ── Retrain modal overlay ── */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; width: 420px; max-width: 90vw;
+  }
+  .modal h2 { font-size: 15px; margin-bottom: 8px; }
+  .modal p { color: var(--muted); font-size: 12px; line-height: 1.6; margin-bottom: 16px; }
+  .modal-row { display: flex; gap: 10px; justify-content: flex-end; }
+  #retrain-log {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px; font-family: var(--mono); font-size: 11px; color: var(--legit);
+    min-height: 60px; white-space: pre-wrap; display: none; margin-bottom: 12px;
+    max-height: 200px; overflow-y: auto;
+  }
+</style>
 </head>
 <body>
 
-<div class="card">
-    <h2>🚨 Fraud Detection System</h2>
+<header>
+  <div class="dot" id="status-dot"></div>
+  <h1>Fraud Detection — Admin</h1>
+  <span class="api-url" id="api-url-label">http://localhost:5000</span>
+  <div class="spacer"></div>
+  <button class="btn" onclick="checkDrift()">Check drift</button>
+  <button class="btn primary" onclick="openRetrain()">Retrain model</button>
+</header>
 
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <button type="submit" class="btn">Upload & Predict</button>
-    </form>
-
-    {% if error %}
-        <div class="alert alert-error">
-            {{ error }}
-        </div>
-    {% endif %}
-
-    {% if drift_alert %}
-        <div class="alert alert-drift">
-            {{ drift_alert }}
-        </div>
-    {% endif %}
-</div>
-
-{% if table_data %}
-<div class="card">
-
-    <h3>Prediction Results</h3>
-
-    <div class="legend">
-        <span class="red">Fraudulent (>0.8)</span>
-        <span class="orange">Action Required (0.5–0.8)</span>
-        <span class="green">Legitimate (<0.5)</span>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside>
+    <div class="stat-card">
+      <div class="stat-label">Total transactions</div>
+      <div class="stat-value neutral" id="stat-total">—</div>
+      <div class="stat-sub" id="stat-loaded">loading…</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Fraud rate (visible)</div>
+      <div class="stat-value fraud" id="stat-fraud-rate">—</div>
+      <div class="stat-sub" id="stat-fraud-count">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Admin corrections</div>
+      <div class="stat-value neutral" id="stat-corrections">—</div>
+      <div class="stat-sub">used as ground truth in retraining</div>
     </div>
 
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Type</th>
-            <th>Amount</th>
+    <!-- Drift status -->
+    <div class="drift-badge ok" id="drift-badge">
+      <strong>Drift status</strong>
+      Click "Check drift" to run detectors
+    </div>
+
+    <button class="btn" style="width:100%" onclick="loadData()">↻ Refresh</button>
+
+    <div style="color:var(--muted);font-size:11px;line-height:1.6;margin-top:auto;">
+      <b style="color:var(--text)">Tip:</b> Click <i>Flip</i> on any row to override the model's label.
+      Corrections are stored as <code>admin_label</code> and used as ground truth in the next retrain.
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main>
+    <div class="toolbar">
+      <span style="color:var(--muted);font-size:11px;">Show</span>
+      <select id="row-count" onchange="loadData()">
+        <option value="100">100 rows</option>
+        <option value="200" selected>200 rows</option>
+        <option value="500">500 rows</option>
+        <option value="1000">1000 rows</option>
+      </select>
+      <div class="filter-row" style="margin-left:8px">
+        <span style="color:var(--muted);font-size:11px;">Filter:</span>
+        <button class="btn filter-btn active" data-filter="all"    onclick="setFilter('all',this)">All</button>
+        <button class="btn filter-btn"        data-filter="Fraud"  onclick="setFilter('Fraud',this)">Fraud</button>
+        <button class="btn filter-btn"        data-filter="Legit"  onclick="setFilter('Legit',this)">Legit</button>
+        <button class="btn filter-btn"        data-filter="corrected" onclick="setFilter('corrected',this)">Corrected</button>
+      </div>
+      <div class="spacer"></div>
+      <span style="color:var(--muted);font-size:11px;" id="row-info"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
             <th>Probability</th>
-            <th>Prediction</th>
-        </tr>
+            <th>Model label</th>
+            <th>Admin label</th>
+            <th>Velocity 6h</th>
+            <th>Credit score</th>
+            <th>Payment type</th>
+            <th>Hour</th>
+            <th>Night?</th>
+            <th>Foreign?</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty-state" style="display:none">
+        <span>📭</span>
+        <div>No transactions yet — start the API and run simulate.py</div>
+      </div>
+    </div>
 
-        {% for row in table_data %}
-        <tr class="{{ row.risk_color }}">
-            <td>{{ row.transaction_id }}</td>
-            <td>{{ row.type }}</td>
-            <td>{{ row.amount }}</td>
-            <td>{{ "%.4f"|format(row.fraud_probability) }}</td>
-            <td>{{ row.fraud_prediction }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
+    <div class="statusbar">
+      <span id="status-msg" class="ok">Ready</span>
+      <span style="margin-left:auto" id="last-refresh"></span>
+    </div>
+  </main>
 </div>
-{% endif %}
 
-<div class="card">
-    <a href="/transactions">📊 View All Transactions</a> |
-    <a href="/download">⬇ Download Dataset</a>
+<!-- Retrain modal -->
+<div class="overlay" id="retrain-overlay">
+  <div class="modal">
+    <h2>Trigger model retraining</h2>
+    <p>This will retrain the XGBoost model on the most recent 5 000 transactions,
+    using admin-corrected labels as ground truth. The live model will be hot-swapped immediately.</p>
+    <div id="retrain-log"></div>
+    <div class="modal-row">
+      <button class="btn" onclick="closeRetrain()">Cancel</button>
+      <button class="btn danger" id="retrain-confirm-btn" onclick="doRetrain()">Retrain now</button>
+    </div>
+  </div>
 </div>
 
+<script>
+const API = 'http://localhost:5000';
+let allRows = [];
+let activeFilter = 'all';
+
+// ── Fetch & render ──────────────────────────────────────────────────────────
+async function loadData() {
+  const n = document.getElementById('row-count').value;
+  setStatus('Loading…', false);
+  try {
+    const r = await fetch(`${API}/transactions?n=${n}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    allRows = data.data || [];
+    renderTable(allRows);
+    updateStats(allRows);
+    setOnline(true);
+    setStatus(`Loaded ${allRows.length} rows`, false);
+    document.getElementById('last-refresh').textContent =
+      'Updated ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    setOnline(false);
+    setStatus('Cannot reach API — is app.py running?', true);
+  }
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('empty-state');
+  const rowInfo = document.getElementById('row-info');
+
+  let filtered = rows;
+  if (activeFilter === 'Fraud')     filtered = rows.filter(r => r.admin_label === 'Fraud');
+  else if (activeFilter === 'Legit') filtered = rows.filter(r => r.admin_label === 'Legit');
+  else if (activeFilter === 'corrected') filtered = rows.filter(r => r.admin_corrected == 1);
+
+  rowInfo.textContent = `${filtered.length} row${filtered.length !== 1 ? 's' : ''}`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Show newest first
+  const display = [...filtered].reverse();
+  const globalOffset = rows.length;
+
+  tbody.innerHTML = display.map((row, i) => {
+    const globalIdx = rows.indexOf(row);  // true index for flip
+    const prob = parseFloat(row.fraud_probability) || 0;
+    const pct  = Math.round(prob * 100);
+    const probColor = prob > 0.7 ? '#ef4444' : prob > 0.4 ? '#f59e0b' : '#22c55e';
+    const isCorrect = row.admin_corrected == 1;
+    const adminLbl  = row.admin_label || row.model_label;
+    const modelLbl  = row.model_label;
+
+    return `<tr class="${isCorrect ? 'corrected' : ''}">
+      <td class="mono" style="color:var(--muted)">${globalIdx}</td>
+      <td>
+        <span class="mono" style="color:${probColor};margin-right:6px">${pct}%</span>
+        <span class="prob-bar"><span class="prob-fill" style="width:${pct}%;background:${probColor}"></span></span>
+      </td>
+      <td>
+        <span class="label-pill ${modelLbl === 'Fraud' ? 'fraud' : 'legit'}">
+          <span class="dot-sm"></span>${modelLbl}
+        </span>
+      </td>
+      <td>
+        <span class="label-pill ${adminLbl === 'Fraud' ? 'fraud' : 'legit'}">
+          <span class="dot-sm"></span>${adminLbl}
+        </span>
+        ${isCorrect ? '<span class="corrected-tag">corrected</span>' : ''}
+      </td>
+      <td class="mono">${row.velocity_6h ?? '—'}</td>
+      <td class="mono">${row.credit_risk_score ?? '—'}</td>
+      <td>${row.payment_type ?? '—'}</td>
+      <td class="mono">${row.transaction_hour ?? '—'}</td>
+      <td>${row.is_night_transaction == 1 ? '🌙' : '—'}</td>
+      <td>${row.foreign_request == 1 ? '🌐' : '—'}</td>
+      <td>
+        <button class="flip-btn" onclick="flipLabel(${globalIdx})">Flip</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStats(rows) {
+  document.getElementById('stat-total').textContent   = rows.length.toLocaleString();
+  document.getElementById('stat-loaded').textContent  = `${rows.length} rows loaded`;
+
+  const fraudCount   = rows.filter(r => (r.admin_label || r.model_label) === 'Fraud').length;
+  const fraudRate    = rows.length ? (fraudCount / rows.length * 100).toFixed(1) : '0.0';
+  document.getElementById('stat-fraud-rate').textContent  = fraudRate + '%';
+  document.getElementById('stat-fraud-count').textContent = `${fraudCount} fraud / ${rows.length - fraudCount} legit`;
+
+  const corrections = rows.filter(r => r.admin_corrected == 1).length;
+  document.getElementById('stat-corrections').textContent = corrections.toLocaleString();
+}
+
+// ── Flip label ──────────────────────────────────────────────────────────────
+async function flipLabel(idx) {
+  setStatus(`Flipping label for row ${idx}…`, false);
+  try {
+    const r = await fetch(`${API}/admin/flip/${idx}`, { method: 'POST' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    setStatus(`Row ${idx} flipped to ${data.updated_row.admin_label}`, false);
+    loadData();
+  } catch(e) {
+    setStatus('Flip failed: ' + e.message, true);
+  }
+}
+
+// ── Drift check ─────────────────────────────────────────────────────────────
+async function checkDrift() {
+  const badge = document.getElementById('drift-badge');
+  badge.className = 'drift-badge ok';
+  badge.innerHTML = '<strong>Checking drift…</strong>';
+  try {
+    const r = await fetch(`${API}/drift/check`);
+    const data = await r.json();
+    const any = data.any_drift;
+    badge.className = 'drift-badge ' + (any ? 'warn' : 'ok');
+
+    const predKS   = data.prediction?.[1]?.ks_statistic ?? '?';
+    const rateChg  = data.fraud_rate?.[1]?.change ?? '?';
+    const featN    = data.feature?.[1]?.n_drifted ?? '?';
+    const featList = (data.feature?.[1]?.drifted_features || []).join(', ') || 'none';
+
+    badge.innerHTML = `
+      <strong>${any ? '⚠ Drift detected' : '✓ No drift detected'}</strong>
+      ${any ? 'Retraining recommended.' : 'Model appears stable.'}
+      <div class="drift-detail">
+pred KS:    ${predKS}
+rate Δ:     ${rateChg}
+feat drift: ${featN} cols (${featList})
+      </div>`;
+  } catch(e) {
+    badge.innerHTML = '<strong>Check failed</strong>' + e.message;
+  }
+}
+
+// ── Retrain modal ───────────────────────────────────────────────────────────
+function openRetrain() {
+  document.getElementById('retrain-overlay').classList.add('show');
+  document.getElementById('retrain-log').style.display = 'none';
+  document.getElementById('retrain-log').textContent   = '';
+  document.getElementById('retrain-confirm-btn').disabled = false;
+}
+function closeRetrain() {
+  document.getElementById('retrain-overlay').classList.remove('show');
+  loadData();
+}
+async function doRetrain() {
+  const btn = document.getElementById('retrain-confirm-btn');
+  const log = document.getElementById('retrain-log');
+  btn.disabled = true;
+  btn.textContent = 'Retraining…';
+  log.style.display = 'block';
+  log.textContent = 'Sending retrain request…\n';
+  try {
+    const r = await fetch(`${API}/drift/retrain`, { method: 'POST' });
+    const data = await r.json();
+    if (data.error) {
+      log.textContent += '❌ ' + data.error;
+    } else {
+      const d = data.details || {};
+      log.textContent +=
+        `✅ Done at ${d.retrain_timestamp || '?'}\n` +
+        `   Samples: ${d.n_samples || '?'}\n` +
+        `   Fraud rate: ${((d.fraud_rate || 0) * 100).toFixed(1)}%\n` +
+        `   F1 (fraud class): ${d.report?.['1']?.['f1-score']?.toFixed(3) ?? '?'}`;
+    }
+  } catch(e) {
+    log.textContent += '❌ ' + e.message;
+  }
+  btn.textContent = 'Done';
+  btn.disabled = false;
+}
+
+// ── Filters ─────────────────────────────────────────────────────────────────
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTable(allRows);
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function setOnline(yes) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'dot' + (yes ? '' : ' offline');
+}
+function setStatus(msg, isErr) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = isErr ? 'err' : 'ok';
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+loadData();
+setInterval(loadData, 15000);   // auto-refresh every 15 s
+document.getElementById('api-url-label').textContent = API;
+</script>
 </body>
 </html>
