@@ -35,7 +35,7 @@ def detect_prediction_drift(window_size: int = 500, threshold: float = 0.15):
     new = df["fraud_probability"].iloc[-window_size:]
 
     stat, p_value = ks_2samp(old, new)
-    drift_detected = stat > threshold
+    drift_detected = bool(stat > threshold)
 
     return drift_detected, {
         "ks_statistic": round(stat, 4),
@@ -68,7 +68,7 @@ def detect_fraud_rate_drift(window_size: int = 500, threshold: float = 0.05):
     new_rate = (new == "Fraud").mean()
     change   = abs(new_rate - old_rate)
 
-    drift_detected = change > threshold
+    drift_detected = bool(change > threshold)
 
     return drift_detected, {
         "old_fraud_rate": round(old_rate, 4),
@@ -127,7 +127,7 @@ def detect_feature_drift(
         if stat > threshold:
             drifted.append(col)
 
-    drift_detected = len(drifted) >= min_drifted_features
+    drift_detected = bool(len(drifted) >= min_drifted_features)
 
     return drift_detected, {
         "drifted_features": drifted,
@@ -157,11 +157,15 @@ def check_all_drift(window_size: int = 500):
     rate   = detect_fraud_rate_drift(window_size)
     feat   = detect_feature_drift(window_size)
 
-    any_drift = pred[0] or rate[0] or feat[0]
+    any_drift = bool(pred[0]) or bool(rate[0]) or bool(feat[0])
+
+    def _serializable(result):
+        detected, info = result
+        return [bool(detected), info if isinstance(info, dict) else {"message": str(info)}]
 
     return {
         "any_drift":  any_drift,
-        "prediction": pred,
-        "fraud_rate": rate,
-        "feature":    feat,
+        "prediction": _serializable(pred),
+        "fraud_rate": _serializable(rate),
+        "feature":    _serializable(feat),
     }
