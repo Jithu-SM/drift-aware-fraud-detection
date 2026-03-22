@@ -35,12 +35,12 @@ DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), "dashboard")
 @app.route("/")
 def root():
     """Redirect root to the admin dashboard."""
-    return send_from_directory(DASHBOARD_DIR, "index.html")
+    return send_from_directory(DASHBOARD_DIR, "templates/index.html")
 
 @app.route("/dashboard")
 @app.route("/dashboard/")
 def dashboard():
-    return send_from_directory(DASHBOARD_DIR, "index.html")
+    return send_from_directory(DASHBOARD_DIR, "templates/index.html")
 
 
 CHECK_EVERY  = 50        # run drift check every N predictions

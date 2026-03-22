@@ -43,9 +43,9 @@ def detect_prediction_drift(window_size: int = 500, threshold: float = 0.05):
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 2️⃣ Fraud Rate Drift  (your original — unchanged signature)
-# ─────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────
+# 2️⃣ Fraud Rate Drift  
+# ──────────────────────────
 
 def detect_fraud_rate_drift(window_size: int = 500, threshold: float = 0.05):
     """
@@ -78,7 +78,7 @@ def detect_fraud_rate_drift(window_size: int = 500, threshold: float = 0.05):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3️⃣ Feature Drift  (new — catches concept drift at the raw-data level)
+# 3️⃣ Feature Drift  (catches concept drift at the raw-data level)
 # ─────────────────────────────────────────────────────────────────────────────
 
 FEATURE_DRIFT_COLS = [
