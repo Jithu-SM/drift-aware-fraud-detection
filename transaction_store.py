@@ -56,7 +56,9 @@ def append_transaction(features: dict, fraud_prob: float, threshold: float = 0.5
 
 def flip_label(row_index: int) -> dict:
     """
-    Admin flips the label for a given row index (0-based).
+    Admin flips the label for a given ABSOLUTE CSV row index.
+    Always use the csv_row field returned by get_recent(), not
+    the position in the fetched slice.
 
     Returns the updated row as a dict.
     """
@@ -77,9 +79,11 @@ def flip_label(row_index: int) -> dict:
 
 
 def get_recent(n: int = 100) -> pd.DataFrame:
-    """Return the n most recent transactions."""
+    """Return the n most recent transactions with their real CSV row index."""
     df = pd.read_csv(TRANSACTIONS_FILE)
-    return df.tail(n).reset_index(drop=True)
+    tail = df.tail(n).copy()
+    tail["csv_row"] = tail.index   # actual row number in the CSV file
+    return tail.reset_index(drop=True)
 
 
 def count() -> int:

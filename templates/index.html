@@ -358,7 +358,7 @@ function renderTable(rows) {
   const globalOffset = rows.length;
 
   tbody.innerHTML = display.map((row, i) => {
-    const globalIdx = rows.indexOf(row);  // true index for flip
+    const globalIdx = row.csv_row ?? rows.indexOf(row);  // actual CSV row index
     const prob = parseFloat(row.fraud_probability) || 0;
     const pct  = Math.round(prob * 100);
     const probColor = prob > 0.7 ? '#ef4444' : prob > 0.4 ? '#f59e0b' : '#22c55e';
@@ -367,7 +367,7 @@ function renderTable(rows) {
     const modelLbl  = row.model_label;
 
     return `<tr class="${isCorrect ? 'corrected' : ''}">
-      <td class="mono" style="color:var(--muted)">${globalIdx}</td>
+      <td class="mono" style="color:var(--muted)">${row.csv_row ?? globalIdx}</td>
       <td>
         <span class="mono" style="color:${probColor};margin-right:6px">${pct}%</span>
         <span class="prob-bar"><span class="prob-fill" style="width:${pct}%;background:${probColor}"></span></span>
@@ -416,7 +416,7 @@ async function flipLabel(idx) {
     const r = await fetch(`${API}/admin/flip/${idx}`, { method: 'POST' });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
-    setStatus(`Row ${idx} flipped to ${data.updated_row.admin_label}`, false);
+    setStatus(`Row #${idx} flipped → ${data.updated_row.admin_label}`, false);
     loadData();
   } catch(e) {
     setStatus('Flip failed: ' + e.message, true);

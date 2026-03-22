@@ -1,5 +1,5 @@
 """
-drift_detection.py  — Drift detectors (preserves your original structure)
+drift_detection.py  — Drift detectors (preserves original structure)
 ------------------
 Adds a third detector (feature drift via KS on key input columns)
 so that concept drift in the raw data is caught even before the
@@ -18,7 +18,7 @@ TRANSACTIONS_FILE = "data/transactions.csv"
 # 1️⃣ Prediction Drift  (your original — unchanged signature)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def detect_prediction_drift(window_size: int = 500, threshold: float = 0.15):
+def detect_prediction_drift(window_size: int = 500, threshold: float = 0.05):
     """
     KS test on model output (fraud_probability) between two consecutive windows.
 
