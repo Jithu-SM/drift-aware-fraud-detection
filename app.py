@@ -35,12 +35,12 @@ DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), "dashboard")
 @app.route("/")
 def root():
     """Redirect root to the admin dashboard."""
-    return send_from_directory(DASHBOARD_DIR, "templates/index.html")
+    return send_from_directory(DASHBOARD_DIR, "index.html")
 
 @app.route("/dashboard")
 @app.route("/dashboard/")
 def dashboard():
-    return send_from_directory(DASHBOARD_DIR, "templates/index.html")
+    return send_from_directory(DASHBOARD_DIR, "index.html")
 
 
 CHECK_EVERY  = 50        # run drift check every N predictions
@@ -163,6 +163,20 @@ def manual_retrain():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# /transactions/reset  — wipe stale transactions.csv
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/transactions/reset", methods=["POST"])
+def reset_transactions():
+    import os
+    path = store.TRANSACTIONS_FILE
+    if os.path.exists(path):
+        os.remove(path)
+        print("[admin] transactions.csv deleted — starting fresh")
+        return jsonify({"message": "transactions.csv deleted — ready for fresh data"})
+    return jsonify({"message": "No transactions.csv found — already clean"})
+
+
 # /health
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -178,4 +192,4 @@ def health():
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000, use_reloader=False)

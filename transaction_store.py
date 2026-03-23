@@ -79,9 +79,15 @@ def flip_label(row_index: int) -> dict:
 
 
 def get_recent(n: int = 100) -> pd.DataFrame:
-    """Return the n most recent transactions with their real CSV row index."""
+    """Return the n most recent transactions with their real CSV row index.
+    Always guarantees model_label, admin_label, admin_corrected, and
+    fraud_probability columns exist — even if the CSV was written by an
+    older version of the code that lacked them.
+    """
     df = pd.read_csv(TRANSACTIONS_FILE)
-    tail = df.tail(n).copy()
+
+    df    = _ensure_columns(df)
+    tail  = df.tail(n).copy()
     tail["csv_row"] = tail.index   # actual row number in the CSV file
     return tail.reset_index(drop=True)
 
@@ -93,7 +99,26 @@ def count() -> int:
     return sum(1 for _ in open(TRANSACTIONS_FILE)) - 1  # subtract header
 
 
+def _ensure_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Guarantee required columns exist with safe defaults (handles old CSV files)."""
+    if "fraud_probability" not in df.columns:
+        df["fraud_probability"] = 0.0
+    if "model_label" not in df.columns:
+        df["model_label"] = df["fraud_probability"].apply(
+            lambda p: "Fraud" if float(p) >= 0.5 else "Legit"
+        )
+    if "admin_label" not in df.columns:
+        df["admin_label"] = df["model_label"]
+    if "admin_corrected" not in df.columns:
+        df["admin_corrected"] = 0
+    df["fraud_probability"]  = pd.to_numeric(df["fraud_probability"],  errors="coerce").fillna(0.0)
+    df["model_label"]        = df["model_label"].fillna("Legit").astype(str)
+    df["admin_label"]        = df["admin_label"].fillna(df["model_label"]).astype(str)
+    df["admin_corrected"]    = pd.to_numeric(df["admin_corrected"], errors="coerce").fillna(0).astype(int)
+    return df
+
+
 def load_all() -> pd.DataFrame:
     if not os.path.exists(TRANSACTIONS_FILE):
         return pd.DataFrame(columns=_COLUMNS)
-    return pd.read_csv(TRANSACTIONS_FILE)
+    return _ensure_columns(pd.read_csv(TRANSACTIONS_FILE))
